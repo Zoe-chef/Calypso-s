@@ -899,8 +899,13 @@
   const pending = new Map(); // id -> dish, shared between chat suggestions and the menu grid
   function isPending(id){ return pending.has(id); }
   function togglePending(dish){
-    if (pending.has(dish.id)) pending.delete(dish.id); else pending.set(dish.id, dish);
+    const adding = !pending.has(dish.id);
+    if (adding) pending.set(dish.id, dish); else pending.delete(dish.id);
     refreshPendingUI();
+    // Sullivan comments on a dish when it's added (not when it's removed) —
+    // this is her recommendation line from the menu data (menu_final.xlsx's
+    // sullivan_recommendation column, carried through as dish.note).
+    if (adding && dish.note) showBubble(dish.note, { holdMs: 3600 });
   }
   function refreshPendingUI(){
     const n = pending.size;
