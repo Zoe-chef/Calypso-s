@@ -18,6 +18,14 @@ mapping = {
     "__COUNTER_FRONT__": "bar_counter_front.png",
     "__RECEIPT_BG__": "receipt.png",
     "__NOTE_BG__": "note.png",
+    "__CHAR_WALK__": "walk.png",
+    "__CHAR_SHOW__": "show.png",
+    "__CHAR_SHAKE_1__": "shake_1.png",
+    "__CHAR_SHAKE_2__": "shake_2.png",
+    "__DRINK_BEER__": "drink_beer.png",
+    "__DRINK_SHOT__": "drink_shot.png",
+    "__DRINK_COCKTAIL__": "drink_cocktail.png",
+    "__DRINK_JUICE__": "drink_juice.png",
 }
 for i in range(1, 3):
     mapping[f"__CUP_{i}__"] = f"cup_{i}.png"
@@ -40,6 +48,11 @@ menu_json = (BASE / "menu_data.min.json").read_text(encoding="utf-8")
 if "__MENU_DATA_JSON__" not in html:
     raise SystemExit("token missing in template: __MENU_DATA_JSON__")
 html = html.replace("__MENU_DATA_JSON__", menu_json)
+
+drink_json = (BASE / "drink_data.min.json").read_text(encoding="utf-8")
+if "__DRINK_DATA_JSON__" not in html:
+    raise SystemExit("token missing in template: __DRINK_DATA_JSON__")
+html = html.replace("__DRINK_DATA_JSON__", drink_json)
 
 OUT.write_text(html, encoding="utf-8")
 print("wrote", OUT, OUT.stat().st_size / 1024 / 1024, "MB")

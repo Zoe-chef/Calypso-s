@@ -104,7 +104,9 @@
     position:absolute; left:63%; bottom:29.5%; width:29%; transform:translateX(-50%);
     filter:drop-shadow(0 10px 16px rgba(0,0,0,.45));
     z-index:4;
+    transition:left 1s ease;
   }
+  .sprite-wrap.bar-center{ left:50%; }
   #spriteCanvas{ display:block; width:100%; height:auto; }
 
   .loading-veil{
@@ -328,6 +330,76 @@
   .menu-add-btn.added{ background:var(--sage); border-color:var(--sage-bright); color:#eafff6; }
   .menu-empty{ grid-column:1/-1; text-align:center; padding:16px; color:#8a6a48; font-size:.78rem; }
 
+  /* ================= Bar mode: floating drink icons + bottom panel ================= */
+  .stage.bar-active .bubble{ top:9%; left:60%; width:min(38%, 210px); }
+
+  .bar-icons{
+    position:absolute; right:3%; top:50%; transform:translateY(-50%);
+    z-index:11; display:flex; gap:14px;
+  }
+  .bar-icons[hidden]{ display:none; }
+  .bar-icon-btn{
+    position:relative; width:22%; min-width:68px; max-width:100px; aspect-ratio:1;
+    padding:0; border:none; background:none; cursor:pointer;
+    opacity:0; transform:translateY(10px);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .bar-icon-btn.shown{ opacity:1; transform:translateY(0); }
+  .bar-icon-float{ display:block; width:100%; height:100%; animation:barIconFloat 2.4s ease-in-out infinite; }
+  .bar-icon-btn img{
+    width:100%; height:100%; object-fit:contain; image-rendering:pixelated;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+  }
+  @keyframes barIconFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
+  .bar-icon-btn:hover .icon-tip{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .bar-panel{
+    position:absolute; left:0; right:0; bottom:0; height:52%; z-index:19;
+    background:linear-gradient(175deg, var(--paper) 0%, var(--paper-dark) 100%);
+    border-top:3px solid var(--ink-soft);
+    box-shadow:0 -18px 40px -14px rgba(0,0,0,.55);
+    padding:2.4% 3.4%;
+    display:flex; flex-direction:column;
+    transform:translateY(100%);
+    transition:transform .25s cubic-bezier(.3,.9,.4,1);
+  }
+  .bar-panel[hidden]{ display:none; }
+  .bar-panel.open{ transform:translateY(0); }
+  .bar-panel-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:8px; padding-right:22px; }
+
+  .bar-cats{ display:flex; gap:6px; flex-wrap:wrap; flex:0 0 auto; }
+  .bar-back-row{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .bar-back-btn{
+    background:none; border:1px solid var(--ink-soft); color:var(--ink-soft);
+    padding:3px 10px; border-radius:999px; font-size:.7rem; cursor:pointer;
+  }
+  .bar-sub-title{ font-family:"Caveat", cursive; font-size:clamp(.95rem,2vw,1.15rem); color:var(--ink-soft); }
+
+  .bar-grid{
+    flex:1 1 auto; min-height:0; overflow-y:auto; display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:8px; align-content:start;
+  }
+  .bar-card{
+    background:rgba(255,255,255,.35); border:1px solid var(--ink-soft); border-radius:8px;
+    padding:8px 9px; display:flex; flex-direction:column; gap:4px;
+  }
+  .bar-card-name-cn{ font-family:"Fraunces", serif; font-weight:600; font-size:clamp(.68rem,1.4vw,.84rem); color:var(--ink); }
+  .bar-card-name-en{ font-size:clamp(.5rem,1vw,.6rem); font-style:italic; color:#8a6a48; }
+  .bar-card-ing{ font-size:clamp(.5rem,1vw,.6rem); color:#8a6a48; }
+  .bar-card-tags{ display:flex; gap:3px; flex-wrap:wrap; }
+  .bar-card-note{ font-family:"Caveat", cursive; font-size:clamp(.62rem,1.3vw,.76rem); color:#8a6a48; flex:1; }
+  .bar-add-btn{
+    align-self:flex-end; background:rgba(255,255,255,.5); border:1px solid var(--ink-soft); color:var(--ink);
+    padding:3px 9px; border-radius:6px; font-size:clamp(.5rem,1vw,.62rem); font-weight:600; cursor:pointer;
+  }
+  .bar-add-btn.added{ background:var(--sage); border-color:var(--sage-bright); color:#eafff6; }
+
+  .bar-finish-row{ flex:0 0 auto; display:flex; justify-content:flex-end; padding-top:2px; }
+
+  .bar-beer-confirm{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; }
+  .bar-beer-confirm .bar-card-name-cn{ font-size:clamp(1rem,2.4vw,1.35rem); }
+  .bar-beer-confirm .bar-card-note{ font-size:clamp(.75rem,1.6vw,.95rem); margin-bottom:6px; }
+
   /* ================= Modal steps: receipt / calendar / note ================= */
   .modal-layer{
     position:absolute; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
@@ -502,6 +574,30 @@
     </div>
   </div>
 
+  <div class="bar-icons" id="barIcons" hidden>
+    <button class="bar-icon-btn" id="barIconBeer" data-drink="beer">
+      <span class="bar-icon-float"><img src="__DRINK_BEER__" alt="" /></span>
+      <span class="icon-tip">Beer</span>
+    </button>
+    <button class="bar-icon-btn" id="barIconShot" data-drink="shot">
+      <span class="bar-icon-float"><img src="__DRINK_SHOT__" alt="" /></span>
+      <span class="icon-tip">Shot</span>
+    </button>
+    <button class="bar-icon-btn" id="barIconCocktail" data-drink="cocktail">
+      <span class="bar-icon-float"><img src="__DRINK_COCKTAIL__" alt="" /></span>
+      <span class="icon-tip">Cocktail</span>
+    </button>
+    <button class="bar-icon-btn" id="barIconJuice" data-drink="juice">
+      <span class="bar-icon-float"><img src="__DRINK_JUICE__" alt="" /></span>
+      <span class="icon-tip">Juice</span>
+    </button>
+  </div>
+
+  <div class="bar-panel" id="barPanel" hidden>
+    <button class="notebook-close" id="barPanelClose" aria-label="Close">&times;</button>
+    <div class="bar-panel-body" id="barPanelBody"></div>
+  </div>
+
   <div class="modal-layer" id="receiptLayer" hidden>
     <div class="receipt-card">
       <button class="modal-back" id="receiptBack" aria-label="Back">&larr;</button>
@@ -562,7 +658,8 @@
     normal:"__NORMAL__",
     cup_1:"__CUP_1__", cup_2:"__CUP_2__",
     pen_1:"__PEN_1__", pen_2:"__PEN_2__", pen_3:"__PEN_3__", pen_4:"__PEN_4__", pen_5:"__PEN_5__",
-    rope_1:"__ROPE_1__", rope_2:"__ROPE_2__", rope_3:"__ROPE_3__", rope_4:"__ROPE_4__", rope_5:"__ROPE_5__"
+    rope_1:"__ROPE_1__", rope_2:"__ROPE_2__", rope_3:"__ROPE_3__", rope_4:"__ROPE_4__", rope_5:"__ROPE_5__",
+    walk:"__CHAR_WALK__", show:"__CHAR_SHOW__", shake_1:"__CHAR_SHAKE_1__", shake_2:"__CHAR_SHAKE_2__"
   };
 
   // Hand-grip point for each rope_pull frame, as a fraction of that frame's OWN
@@ -627,10 +724,14 @@
     dctx.drawImage(img, 0, 0, img.width, img.height, t.offsetX, t.offsetY, img.width * t.scale, img.height * t.scale);
   }
 
-  const sprite = { pose:"idle", busy:false, wiping:false, talking:false, talkTimer:null, wipeTimer:null };
+  const sprite = { pose:"idle", busy:false, wiping:false, talking:false, talkTimer:null, wipeTimer:null, barFrame:"show" };
   let wipeGen = 0;
 
-  function restPose(){ drawFrame(sprite.pose === "order" ? "pen_5" : "normal"); }
+  function restPose(){
+    if (sprite.pose === "order") drawFrame("pen_5");
+    else if (sprite.pose === "bar") drawFrame(sprite.barFrame || "show");
+    else drawFrame("normal");
+  }
 
   // Ambient idle animation only — never blocks a deliberate click. Any
   // higher-priority action (order pose, rope pull, talking) calls this to
@@ -675,6 +776,9 @@
     // Already holding the pen + notebook (order pose) — nothing new to animate,
     // stay put on pen_5 instead of replaying the pick-up-the-pen gesture again.
     if (sprite.pose === "order"){ drawFrame("pen_5"); return; }
+    // Bar mode has its own poses (show / shake) driven by playBarShake() and
+    // panel open/close — talking here should never trigger the pen gesture.
+    if (sprite.pose === "bar"){ drawFrame(sprite.barFrame || "show"); return; }
     const seq = ["pen_1","pen_2","pen_3","pen_4","pen_5"];
     let i = 0;
     (function step(){
@@ -832,13 +936,14 @@
     showBubble("Want to switch this place into bar mode?", {
       actions: [
         { label:"Not now", onClick: () => {} },
-        { label:"Let's do it", primary:true, onClick: () => playRopeSequence(ROPE_FORWARD, true) }
+        { label:"Let's do it", primary:true, onClick: () => playRopeSequence(ROPE_FORWARD, true, enterBarMode) }
       ]
     });
   }
 
   function switchBackToDay(){
     if (sprite.busy || stageEl.dataset.scene !== "night") return;
+    exitBarMode();
     playRopeSequence(ROPE_BACKWARD, false);
   }
 
@@ -1105,12 +1210,260 @@
   iconBar.addEventListener("click", () => {
     closeNotebook();
     closeMenu();
-    if (stageEl.dataset.scene === "night"){
-      showToast("The drink list is still being poured — check back soon.");
-      return;
-    }
+    // Once in bar mode the drink icons + panel are already the persistent UI —
+    // nothing extra for this button to do until you switch back to day.
+    if (stageEl.dataset.scene === "night") return;
     askSwitchToBarMode();
   });
+
+  // ================= Bar mode: drink icons + bottom panel =================
+  const DRINK_DATA = __DRINK_DATA_JSON__;
+  const drinks = DRINK_DATA.drinks;
+  const BASE_SPIRITS = ["Vodka", "Whisky", "Rum", "Gin", "Tequila", "Brandy"];
+
+  const barIconsWrap = $("#barIcons");
+  const barPanelEl = $("#barPanel");
+  const barPanelBody = $("#barPanelBody");
+  let barView = null; // "beer" | "shot" | "cocktail-cats" | "cocktail-list" | "juice-cats" | "juice-list"
+  let barCocktailSpirit = null;
+  let barJuiceCat = null; // "Non-Alcoholic" | "Juice"
+
+  // Same shared-Map pattern as the food menu's `pending`, kept separate so a
+  // drink order never mixes with a food order.
+  const barPending = new Map();
+  function isBarPending(id){ return barPending.has(id); }
+  function toggleBarPending(drink){
+    const adding = !barPending.has(drink.id);
+    if (adding) barPending.set(drink.id, drink); else barPending.delete(drink.id);
+    renderBarPanel();
+    if (adding && drink.note) showBubble(drink.note, { holdMs: 3600 });
+  }
+
+  function enterBarMode(){
+    stageEl.classList.add("bar-active");
+    sprite.pose = "bar";
+    sprite.barFrame = "show";
+    sprite.busy = true;
+    cancelWipe();
+    drawFrame("walk");
+    // Walk from her usual spot to dead-center over the same 1s the walk
+    // pose is held, so "show" lands exactly when she arrives.
+    spriteWrap.classList.add("bar-center");
+    setTimeout(() => {
+      sprite.busy = false;
+      restPose();
+      showBarIcons();
+    }, 1000);
+  }
+  function exitBarMode(){
+    stageEl.classList.remove("bar-active");
+    hideBarIcons();
+    closeBarPanel();
+    sprite.pose = "idle";
+    spriteWrap.classList.remove("bar-center");
+  }
+
+  function showBarIcons(){
+    barIconsWrap.hidden = false;
+    const btns = [...barIconsWrap.querySelectorAll(".bar-icon-btn")];
+    btns.forEach(b => b.classList.remove("shown"));
+    btns.forEach((b, i) => setTimeout(() => b.classList.add("shown"), 150 + i * 170));
+  }
+  function hideBarIcons(){
+    barIconsWrap.querySelectorAll(".bar-icon-btn").forEach(b => b.classList.remove("shown"));
+    barIconsWrap.hidden = true;
+  }
+
+  // Shake-1 (hold 1s) -> shake-2, held for as long as a panel is open; back
+  // to "show" once it closes. Mirrors the pen-pickup gesture used elsewhere.
+  function barPanelOpening(){
+    cancelWipe();
+    sprite.barFrame = "shake_1";
+    if (!sprite.talking) drawFrame("shake_1");
+    setTimeout(() => {
+      sprite.barFrame = "shake_2";
+      if (sprite.pose === "bar" && !sprite.talking) drawFrame("shake_2");
+    }, 1000);
+  }
+  function barPanelClosing(){
+    sprite.barFrame = "show";
+    if (sprite.pose === "bar" && !sprite.talking) drawFrame("show");
+  }
+
+  function openBarPanel(view){
+    barView = view;
+    barPanelOpening();
+    renderBarPanel();
+    barPanelEl.hidden = false;
+    void barPanelEl.offsetWidth;
+    barPanelEl.classList.add("open");
+  }
+  function closeBarPanel(){
+    barPanelEl.classList.remove("open");
+    barPanelClosing();
+    barView = null;
+    barCocktailSpirit = null;
+    barJuiceCat = null;
+    setTimeout(() => { barPanelEl.hidden = true; }, 250);
+  }
+  // Same visual hide, but keeps barView/barCocktailSpirit/barJuiceCat intact
+  // so the receipt's back button can reopen exactly where the guest was.
+  function hideBarPanelForReceipt(){
+    barPanelEl.classList.remove("open");
+    barPanelClosing();
+    setTimeout(() => { barPanelEl.hidden = true; }, 250);
+  }
+
+  function renderBarPanel(){
+    const body = barPanelBody;
+    body.innerHTML = "";
+
+    function backRow(label, onClick){
+      const row = document.createElement("div");
+      row.className = "bar-back-row";
+      const btn = document.createElement("button");
+      btn.className = "bar-back-btn";
+      btn.textContent = label;
+      btn.addEventListener("click", onClick);
+      row.appendChild(btn);
+      body.appendChild(row);
+    }
+    function drinkGrid(list){
+      const grid = document.createElement("div");
+      grid.className = "bar-grid";
+      list.forEach(d => {
+        const card = document.createElement("div");
+        card.className = "bar-card";
+        const ingText = d.ingredients.map(i => i.en).join(", ");
+        card.innerHTML =
+          '<div class="bar-card-name-cn">' + d.cn + '</div>' +
+          '<div class="bar-card-name-en">' + d.en + '</div>' +
+          '<div class="bar-card-ing">' + ingText + '</div>' +
+          '<div class="bar-card-tags">' + (d.vibe || []).map(t => '<span class="menu-tag">' + t + '</span>').join("") + '</div>' +
+          '<div class="bar-card-note">' + (d.note || "") + '</div>';
+        const foot = document.createElement("div");
+        foot.style.display = "flex"; foot.style.justifyContent = "flex-end";
+        const btn = document.createElement("button");
+        btn.className = "bar-add-btn" + (isBarPending(d.id) ? " added" : "");
+        btn.textContent = isBarPending(d.id) ? "Added ✓" : "+ Add";
+        btn.addEventListener("click", () => toggleBarPending(d));
+        foot.appendChild(btn);
+        card.appendChild(foot);
+        grid.appendChild(card);
+      });
+      body.appendChild(grid);
+    }
+    function finishRow(){
+      const row = document.createElement("div");
+      row.className = "bar-finish-row";
+      const btn = document.createElement("button");
+      btn.className = "nb-finish-btn small";
+      btn.disabled = barPending.size === 0;
+      btn.textContent = "Finish order (" + barPending.size + ")";
+      btn.addEventListener("click", () => { hideBarPanelForReceipt(); setTimeout(() => startFinishOrder("bar"), 260); });
+      row.appendChild(btn);
+      body.appendChild(row);
+    }
+
+    if (barView === "beer"){
+      const beer = drinks.find(d => d.category === "Beer"); // the house tap — no picking, just pour it
+      const wrap = document.createElement("div");
+      wrap.className = "bar-beer-confirm";
+      wrap.innerHTML =
+        '<div class="bar-card-name-cn">' + beer.cn + '</div>' +
+        '<div class="bar-card-name-en">' + beer.en + '</div>' +
+        '<div class="bar-card-note">' + (beer.note || "") + '</div>';
+      const btn = document.createElement("button");
+      btn.className = "paper-btn primary";
+      btn.textContent = "Confirm — one beer";
+      btn.addEventListener("click", () => {
+        barPending.set(beer.id, beer);
+        if (beer.note) showBubble(beer.note, { holdMs: 2600 });
+        hideBarPanelForReceipt();
+        setTimeout(() => startFinishOrder("bar"), 260);
+      });
+      wrap.appendChild(btn);
+      body.appendChild(wrap);
+      return;
+    }
+
+    if (barView === "shot"){
+      const cats = document.createElement("div");
+      cats.className = "bar-cats";
+      BASE_SPIRITS.forEach(spirit => {
+        const d = drinks.find(x => x.category === "Shot" && x.base_spirit === spirit);
+        if (!d) return;
+        const btn = document.createElement("button");
+        btn.className = "menu-cat-chip";
+        btn.textContent = spirit;
+        btn.addEventListener("click", () => {
+          barPending.set(d.id, d);
+          if (d.note) showBubble(d.note, { holdMs: 2600 });
+          hideBarPanelForReceipt();
+          setTimeout(() => startFinishOrder("bar"), 260);
+        });
+        cats.appendChild(btn);
+      });
+      body.appendChild(cats);
+      return;
+    }
+
+    if (barView === "cocktail-cats"){
+      const title = document.createElement("div");
+      title.className = "bar-sub-title";
+      title.textContent = "Pick a base spirit";
+      body.appendChild(title);
+      const cats = document.createElement("div");
+      cats.className = "bar-cats";
+      BASE_SPIRITS.forEach(spirit => {
+        const btn = document.createElement("button");
+        btn.className = "menu-cat-chip";
+        btn.textContent = spirit;
+        btn.addEventListener("click", () => { barCocktailSpirit = spirit; barView = "cocktail-list"; renderBarPanel(); });
+        cats.appendChild(btn);
+      });
+      body.appendChild(cats);
+      return;
+    }
+
+    if (barView === "cocktail-list"){
+      backRow("← Base spirits", () => { barView = "cocktail-cats"; barCocktailSpirit = null; renderBarPanel(); });
+      drinkGrid(drinks.filter(d => d.category === "Cocktail" && d.base_spirit === barCocktailSpirit));
+      finishRow();
+      return;
+    }
+
+    if (barView === "juice-cats"){
+      const title = document.createElement("div");
+      title.className = "bar-sub-title";
+      title.textContent = "Non-alcoholic or juice?";
+      body.appendChild(title);
+      const cats = document.createElement("div");
+      cats.className = "bar-cats";
+      ["Non-Alcoholic", "Juice"].forEach(cat => {
+        const btn = document.createElement("button");
+        btn.className = "menu-cat-chip";
+        btn.textContent = cat;
+        btn.addEventListener("click", () => { barJuiceCat = cat; barView = "juice-list"; renderBarPanel(); });
+        cats.appendChild(btn);
+      });
+      body.appendChild(cats);
+      return;
+    }
+
+    if (barView === "juice-list"){
+      backRow("← Categories", () => { barView = "juice-cats"; barJuiceCat = null; renderBarPanel(); });
+      drinkGrid(drinks.filter(d => d.category === barJuiceCat));
+      finishRow();
+      return;
+    }
+  }
+
+  $("#barIconBeer").addEventListener("click", () => openBarPanel("beer"));
+  $("#barIconShot").addEventListener("click", () => openBarPanel("shot"));
+  $("#barIconCocktail").addEventListener("click", () => openBarPanel("cocktail-cats"));
+  $("#barIconJuice").addEventListener("click", () => openBarPanel("juice-cats"));
+  $("#barPanelClose").addEventListener("click", closeBarPanel);
 
   const chatLog = $("#chatLog");
   const chatInput = $("#chatInput");
@@ -1210,10 +1563,12 @@
 
   let receiptSelection = [];
   let selectedDate = null;
-  let finishSource = null; // "menu" | "chat" — where Finish order was pressed, for the receipt's back button
+  let finishSource = null; // "menu" | "chat" | "bar" — where Finish order was pressed, for the receipt's back button
+  function currentPendingMap(){ return finishSource === "bar" ? barPending : pending; }
 
   function startFinishOrder(source){
-    if (pending.size === 0) return;
+    const map = source === "bar" ? barPending : pending;
+    if (map.size === 0) return;
     finishSource = source;
     closeNotebook();
     closeMenu();
@@ -1226,7 +1581,7 @@
   function renderReceipt(){
     const list = $("#receiptList");
     list.innerHTML = "";
-    [...pending.values()].forEach(d => {
+    [...currentPendingMap().values()].forEach(d => {
       const row = document.createElement("label");
       row.className = "receipt-item";
       const box = document.createElement("input");
@@ -1242,13 +1597,21 @@
   $("#receiptBack").addEventListener("click", () => {
     hideModal("receiptLayer");
     if (finishSource === "menu") openMenu();
+    else if (finishSource === "bar") { if (barView) openBarPanel(barView); }
     else { notebook.classList.add("open"); iconTalk.classList.add("active"); }
   });
 
   $("#receiptConfirm").addEventListener("click", () => {
+    const map = currentPendingMap();
     const checkedIds = [...document.querySelectorAll("#receiptList input:checked")].map(i => Number(i.dataset.id));
-    receiptSelection = [...pending.values()].filter(d => checkedIds.includes(d.id));
+    receiptSelection = [...map.values()].filter(d => checkedIds.includes(d.id));
     hideModal("receiptLayer");
+    // The bar path skips the calendar and the note card entirely — drinks
+    // are an "order it now" thing, not a scheduled dinner.
+    if (finishSource === "bar"){
+      setTimeout(finishBarOrderFlow, 230);
+      return;
+    }
     selectedDate = null;
     $("#calendarConfirm").disabled = true;
     $("#calendarTimeRow").hidden = true;
@@ -1256,6 +1619,12 @@
     renderCalendar();
     setTimeout(() => showModal("calendarLayer"), 230);
   });
+
+  function finishBarOrderFlow(){
+    barPending.clear();
+    console.log("[Sullivan's] bar order submitted", { guest: guestName, drinks: receiptSelection });
+    showToast(guestName + " → Zoe ✦ " + receiptSelection.length + " drink(s) ordered at the bar");
+  }
 
   $("#calendarBack").addEventListener("click", () => {
     hideModal("calendarLayer");
