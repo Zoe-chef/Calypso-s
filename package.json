@@ -1,0 +1,12 @@
+{
+  "name": "sullivans-bar",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Calypso's / Sullivan's Bar — dinner club prototype with a Gemini-backed bartender.",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@google/genai": "^2.21.0"
+  }
+}

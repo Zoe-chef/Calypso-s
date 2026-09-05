@@ -1,0 +1,10 @@
+# Nothing at runtime reads these — api/chat.js only needs api/_data.js
+# (generated ahead of time by build/gen_api_data.py) and the @google/genai
+# package. Keeping these out of the deploy keeps it small and fast.
+server/
+build/
+Assets/
+menu_final.xlsx
+menu_template.csv
+menu_template.xlsx
+项目需求文档.md

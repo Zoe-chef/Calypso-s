@@ -1,0 +1,1323 @@
+<title>Sullivan's Bar</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Instrument+Sans:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --frame-bg:#0b0805;
+    --bg-elevated:#241a12;
+    --line:rgba(201,150,61,.20);
+    --line-strong:rgba(201,150,61,.42);
+    --gold:#c9963d;
+    --gold-bright:#e3b45c;
+    --sage-bright:#7fb09d;
+    --text:#f3e6cd;
+    --text-dim:#c7b191;
+    --text-faint:#8a7658;
+    --focus:#e3b45c;
+    --paper:#f3e9d2;
+    --paper-dark:#e8dab3;
+    --ink:#3a2712;
+    --ink-soft:#6b4226;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:var(--frame-bg);
+    color:var(--text);
+    font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  h1,h2,h3{font-family:"Fraunces", Georgia, serif; text-wrap:balance; margin:0;}
+  button{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+  }
+
+  /* ================= The 16:9 frame — everything lives inside this ================= */
+  .stage{
+    position:relative;
+    width:100%;
+    max-width:1040px;
+    aspect-ratio:16/9;
+    border-radius:16px;
+    overflow:hidden;
+    background:var(--frame-bg);
+    box-shadow:0 30px 70px -30px rgba(0,0,0,.75), 0 0 0 1px var(--line);
+  }
+
+  .scene-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+    clip-path: inset(0 0 30% 0); }
+  .scene-bg.hidden{ display:none; }
+
+  .counter-front{
+    position:absolute; left:0; right:0; bottom:0; height:46%; overflow:hidden; z-index:6;
+    background:linear-gradient(180deg, transparent 0%, transparent 34.8%, #6b4226 34.8%, #4a2c19 62%, #2c1810 100%);
+  }
+  .counter-front img{ position:absolute; left:0; width:100%; display:block; }
+  #counterDay{ top:-64.1%; height:auto; transition:filter .15s ease; }
+  .stage[data-scene="night"] #counterDay{
+    filter:brightness(.6) sepia(.35) saturate(1.2) hue-rotate(-8deg) contrast(1.05);
+  }
+
+
+  .top-bar{
+    position:absolute; z-index:6; inset:0 0 auto 0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:10px; flex-wrap:wrap; padding:2.2% 2.6%;
+    background:linear-gradient(180deg, rgba(11,8,5,.6), transparent);
+    pointer-events:none;
+  }
+  .top-bar > *{ pointer-events:auto; }
+  .brand{ display:flex; align-items:baseline; gap:8px; }
+  .brand-mark{ font-family:"Fraunces", serif; font-weight:900; font-size:clamp(.95rem,2.4vw,1.3rem); color:var(--gold-bright); }
+  .brand-sub{ font-size:clamp(.55rem,1.1vw,.7rem); color:var(--text-dim); letter-spacing:.08em; text-transform:uppercase; }
+  .visit-name{
+    /* Dev-only guest readout — kept out of the player-facing UI. */
+    display:none;
+    font-size:clamp(.6rem,1.2vw,.76rem); color:var(--text-dim);
+    background:rgba(0,0,0,.4); border:1px solid var(--line);
+    padding:5px 10px; border-radius:999px; white-space:nowrap;
+  }
+  .visit-name b{ color:var(--gold-bright); font-weight:600; }
+
+  .rope-layer{
+    position:absolute; left:79%; top:-2%; width:9%; height:46%;
+    transform-origin:50% 0%; animation:ropeSway 4.2s ease-in-out infinite; z-index:7;
+  }
+  .rope-layer img{ width:100%; height:100%; object-fit:contain; object-position:top; display:block; }
+  @keyframes ropeSway{ 0%,100%{ transform:rotate(-2deg); } 50%{ transform:rotate(2deg); } }
+  .rope-layer.ik-active{ animation:none; }
+
+  .sprite-wrap{
+    position:absolute; left:63%; bottom:29.5%; width:29%; transform:translateX(-50%);
+    filter:drop-shadow(0 10px 16px rgba(0,0,0,.45));
+    z-index:4;
+  }
+  #spriteCanvas{ display:block; width:100%; height:auto; }
+
+  .loading-veil{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:#0f0a06; color:var(--text-faint); font-size:.85rem; letter-spacing:.05em;
+    z-index:30; transition:opacity .4s ease;
+  }
+  .loading-veil.gone{ opacity:0; pointer-events:none; }
+
+  .bubble{
+    position:absolute; left:63%; top:37%; width:min(64%, 340px);
+    background:var(--paper); border:3px solid var(--ink); border-radius:0;
+    padding:10px 14px 12px; font-size:clamp(.68rem,1.5vw,.88rem); line-height:1.4; color:var(--ink);
+    opacity:0; transform:translate(-50%, -6px) scale(.82); transform-origin:50% 0%;
+    pointer-events:none;
+    transition:opacity .2s ease, transform .28s cubic-bezier(.34,1.56,.64,1);
+    z-index:15;
+    box-shadow:5px 5px 0 rgba(0,0,0,.4);
+  }
+  .bubble.show{ opacity:1; transform:translate(-50%, 0) scale(1); pointer-events:auto; }
+  .bubble::before,
+  .bubble::after{
+    content:""; position:absolute; left:28px; width:0; height:0;
+    border-left:11px solid transparent; border-right:11px solid transparent;
+  }
+  .bubble::after{ top:-15px; border-bottom:15px solid var(--ink); }
+  .bubble::before{ top:-9px; border-bottom:10px solid var(--paper); z-index:1; }
+  .bubble-name{ font-family:"Caveat", cursive; font-size:1.25em; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:1px; }
+  #bubbleText{ font-family:"Caveat", cursive; font-size:1.2em; line-height:1.25; }
+  .bubble-actions{ display:flex; gap:6px; margin-top:8px; }
+  .bubble-actions[hidden]{ display:none; }
+  .bubble-actions button{
+    border:2px solid var(--ink); background:var(--paper-dark); color:var(--ink);
+    padding:4px 11px; border-radius:0; font-size:.75rem; font-family:"Instrument Sans", sans-serif; cursor:pointer;
+  }
+  .bubble-actions button.primary{ background:var(--ink-soft); color:var(--paper); font-weight:700; }
+  .bubble-actions button:hover{ filter:brightness(1.08); }
+
+  /* Menu filter bubble — same pixel speech-bubble language, parked below Sullivan */
+  .menu-filter-bubble{
+    position:absolute; right:3%; top:46%; width:40%; z-index:13;
+    background:var(--paper); border:3px solid var(--ink); border-radius:0;
+    padding:10px 12px; color:var(--ink);
+    display:flex; flex-direction:column; gap:6px;
+    opacity:0; transform:translateY(-6px) scale(.9); transform-origin:50% 0%;
+    pointer-events:none;
+    transition:opacity .2s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+    box-shadow:5px 5px 0 rgba(0,0,0,.4);
+  }
+  .menu-filter-bubble.open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .menu-filter-bubble::before,
+  .menu-filter-bubble::after{
+    content:""; position:absolute; left:32px; width:0; height:0;
+    border-left:10px solid transparent; border-right:10px solid transparent;
+  }
+  .menu-filter-bubble::after{ top:-14px; border-bottom:14px solid var(--ink); }
+  .menu-filter-bubble::before{ top:-8px; border-bottom:9px solid var(--paper); z-index:1; }
+
+  .state-tag{
+    /* Dev-only pose readout — kept out of the player-facing UI. */
+    display:none;
+    position:absolute; right:2.6%; z-index:10; bottom:3%;
+    font-size:clamp(.55rem,1.1vw,.68rem); letter-spacing:.04em; color:var(--text-dim);
+    background:rgba(0,0,0,.45); border:1px solid var(--line); padding:4px 9px; border-radius:999px;
+    white-space:nowrap;
+  }
+  .state-tag b{ color:var(--sage-bright); font-weight:600; }
+
+  .dev-reset{
+    position:absolute; left:2.4%; z-index:6; top:9%;
+    font-size:.6rem; color:var(--text-faint); background:rgba(0,0,0,.35); border:1px solid var(--line);
+    padding:4px 9px; border-radius:999px; cursor:pointer;
+  }
+  .dev-reset:hover{ color:var(--text); }
+
+  /* ================= Bottom-left icon bar ================= */
+  .icon-bar{
+    position:absolute; left:2.6%; bottom:3%; z-index:9;
+    display:flex; gap:2.8%;
+  }
+  .icon-btn{
+    position:relative;
+    width:17%; aspect-ratio:1; padding:0; cursor:pointer;
+    background:rgba(15,10,6,.55); border:1px solid var(--line-strong); border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .15s ease, background .15s ease, border-color .15s ease;
+    box-shadow:0 6px 14px rgba(0,0,0,.35);
+  }
+  .icon-btn img{ width:98%; height:98%; object-fit:contain; image-rendering:pixelated; }
+  .icon-btn:hover{ transform:translateY(-3px); border-color:var(--gold); }
+  .icon-btn.active{ background:rgba(227,180,92,.24); border-color:var(--gold-bright); }
+
+  .icon-tip{
+    position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%) translateY(4px);
+    background:rgba(15,10,6,.92); color:#f3e6cd; border:1px solid var(--line-strong);
+    padding:3px 9px; border-radius:6px; font-size:.72rem; white-space:nowrap;
+    opacity:0; pointer-events:none; transition:opacity .15s ease, transform .15s ease;
+  }
+  .icon-btn:hover .icon-tip{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ================= Notebook overlay (quarter-screen) ================= */
+  .notebook{
+    position:absolute; left:2.6%; top:9%; bottom:29%; z-index:12;
+    width:44%; transform:translateY(14px);
+    background:linear-gradient(175deg, var(--paper) 0%, var(--paper-dark) 100%);
+    border:3px solid var(--ink-soft); border-radius:8px;
+    box-shadow:0 24px 44px -12px rgba(0,0,0,.6);
+    padding:3.2% 3.6% 2.6% 6.5%;
+    display:flex; flex-direction:column; gap:6px;
+    opacity:0; pointer-events:none;
+    transition:opacity .22s ease, transform .22s ease;
+  }
+  .notebook.open{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .notebook::before{
+    content:""; position:absolute; left:10px; top:6%; bottom:6%; width:7px;
+    background-image:radial-gradient(circle, var(--ink-soft) 42%, transparent 44%);
+    background-size:100% 20px; background-repeat:repeat-y; opacity:.8;
+  }
+  .notebook-title{ font-family:"Caveat", cursive; font-size:clamp(1rem,2.4vw,1.4rem); color:var(--ink-soft); margin:0 0 2px; }
+  .nb-chat-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:6px; }
+  .nb-chat-body[hidden]{ display:none; }
+  .nb-picker{ flex:1 1 auto; display:flex; flex-direction:column; justify-content:center; gap:10px; }
+  .nb-picker[hidden]{ display:none; }
+  .nb-picker-btn{
+    background:rgba(255,255,255,.4); border:2px solid var(--ink-soft); color:var(--ink);
+    padding:12px 14px; border-radius:8px; font-family:"Caveat", cursive; font-size:clamp(.95rem,2.1vw,1.15rem);
+    font-weight:600; cursor:pointer; text-align:left; transition:background .15s ease, transform .15s ease;
+  }
+  .nb-picker-btn:hover{ background:var(--ink-soft); color:var(--paper); transform:translateX(2px); }
+  .notebook-close{
+    position:absolute; right:10px; top:8px; width:22px; height:22px; border-radius:50%;
+    border:1px solid var(--ink-soft); background:var(--paper); color:var(--ink-soft); font-weight:700;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.85rem; line-height:1; padding:0;
+  }
+  .notebook-close:hover{ background:var(--ink-soft); color:var(--paper); }
+
+  .nb-log{
+    flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;
+  }
+  .nb-msg{ max-width:82%; padding:6px 10px; border-radius:9px; font-size:clamp(.62rem,1.4vw,.84rem); line-height:1.4; }
+  .nb-msg.sullivan{ align-self:flex-start; background:rgba(255,255,255,.4); border:1px dashed var(--ink-soft); color:var(--ink); }
+  .nb-msg.user{ align-self:flex-end; background:var(--ink-soft); color:var(--paper); font-weight:500; }
+  .nb-who{ font-family:"Caveat", cursive; font-size:1.15em; display:block; color:#8a4a1e; line-height:1; margin-bottom:1px; }
+  .nb-msg.user .nb-who{ color:var(--paper-dark); }
+  .nb-msg.typing .typing-dots{ display:inline-block; animation:typingPulse 1.1s infinite steps(1); letter-spacing:2px; }
+  @keyframes typingPulse{ 0%,100%{ opacity:.25; } 50%{ opacity:1; } }
+  .nb-suggest{ display:flex; gap:5px; flex-wrap:wrap; flex:0 0 auto; }
+  .nb-chip{
+    background:rgba(255,255,255,.45); border:1px solid var(--ink-soft); color:var(--ink);
+    padding:4px 10px; border-radius:999px; font-size:clamp(.56rem,1.15vw,.72rem); cursor:pointer;
+  }
+  .nb-chip:hover{ background:var(--ink-soft); color:var(--paper); }
+  .nb-input-row{ display:flex; gap:6px; flex:0 0 auto; }
+  .nb-input-row input{
+    flex:1; background:rgba(255,255,255,.6); border:1px solid var(--ink-soft); border-radius:8px;
+    padding:7px 10px; color:var(--ink); font-size:clamp(.62rem,1.4vw,.84rem); min-width:0; font-family:inherit;
+  }
+  .nb-input-row input::placeholder{ color:#8a6a48; }
+  .nb-send{
+    background:var(--ink-soft); color:var(--paper); border:none; border-radius:8px; padding:0 14px;
+    font-weight:700; cursor:pointer; font-size:clamp(.62rem,1.4vw,.84rem);
+  }
+
+  .nb-finish-row{ flex:0 0 auto; display:flex; justify-content:flex-end; }
+  .nb-finish-row[hidden]{ display:none; }
+  .nb-finish-btn{
+    background:var(--gold); border:1px solid var(--ink-soft); color:#241a0c; font-weight:700;
+    padding:6px 12px; border-radius:999px; cursor:pointer; font-size:clamp(.58rem,1.2vw,.76rem);
+  }
+  .nb-finish-btn:hover{ filter:brightness(1.08); }
+  .nb-finish-btn.small{ padding:5px 10px; font-size:clamp(.54rem,1.1vw,.68rem); }
+
+  /* ================= Menu panel ================= */
+  .menu-panel{
+    position:absolute; left:2.6%; top:9%; bottom:29%; z-index:12;
+    width:52%; transform:translateY(14px);
+    background:linear-gradient(175deg, var(--paper) 0%, var(--paper-dark) 100%);
+    border:3px solid var(--ink-soft); border-radius:8px;
+    box-shadow:0 24px 44px -12px rgba(0,0,0,.6);
+    padding:2.6% 3% 2.4%;
+    display:flex; flex-direction:column; gap:6px;
+    opacity:0; pointer-events:none;
+    transition:opacity .22s ease, transform .22s ease;
+  }
+  .menu-panel.open{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .menu-header{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex:0 0 auto; padding-right:22px; }
+  .menu-cats{ display:flex; gap:5px; flex-wrap:wrap; flex:0 0 auto; }
+  .menu-subcats{ display:flex; gap:5px; flex-wrap:wrap; flex:0 0 auto; padding-left:10px; }
+  .menu-subcats[hidden]{ display:none; }
+  .menu-cat-chip, .menu-subcat-chip{
+    background:rgba(255,255,255,.4); border:1px solid var(--ink-soft); color:var(--ink);
+    padding:4px 11px; border-radius:999px; font-size:clamp(.56rem,1.15vw,.74rem); cursor:pointer; font-weight:600;
+  }
+  .menu-subcat-chip{ font-weight:500; background:rgba(255,255,255,.25); }
+  .menu-cat-chip.active, .menu-subcat-chip.active{ background:var(--ink-soft); color:var(--paper); }
+  .menu-ing-row{ display:flex; align-items:center; gap:6px; flex:0 0 auto; flex-wrap:wrap; }
+  .filter-label-paper{ font-size:clamp(.52rem,1.05vw,.64rem); letter-spacing:.05em; text-transform:uppercase; color:#8a6a48; }
+  .menu-ing-row select{
+    background:rgba(255,255,255,.6); border:1px solid var(--ink-soft); color:var(--ink);
+    padding:4px 8px; border-radius:6px; font-size:clamp(.56rem,1.15vw,.72rem); font-family:inherit;
+  }
+  .menu-clear{ background:none; border:1px solid var(--ink-soft); color:#8a6a48; padding:3px 9px; border-radius:999px; font-size:clamp(.52rem,1.05vw,.66rem); cursor:pointer; }
+  .menu-count{ margin-left:auto; font-size:clamp(.52rem,1.05vw,.66rem); color:#8a6a48; }
+  .menu-grid{
+    flex:1 1 auto; min-height:0; overflow-y:auto; display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:6px; align-content:start;
+  }
+  .menu-card{
+    background:rgba(255,255,255,.35); border:1px solid var(--ink-soft); border-radius:8px;
+    padding:7px 8px; display:flex; flex-direction:column; gap:3px;
+  }
+  .menu-card-name-cn{ font-family:"Fraunces", serif; font-weight:600; font-size:clamp(.66rem,1.4vw,.82rem); color:var(--ink); line-height:1.15; }
+  .menu-card-name-en{ font-size:clamp(.5rem,1vw,.6rem); font-style:italic; color:#8a6a48; }
+  .menu-card-tags{ display:flex; gap:3px; flex-wrap:wrap; }
+  .menu-tag{ font-size:clamp(.46rem,0.95vw,.56rem); padding:1px 6px; border-radius:999px; background:rgba(0,0,0,.08); color:#6b4226; }
+  .menu-card-note{ font-family:"Caveat", cursive; font-size:clamp(.6rem,1.25vw,.74rem); color:#8a6a48; line-height:1.2; flex:1; }
+  .menu-add-btn{
+    align-self:flex-end; background:rgba(255,255,255,.5); border:1px solid var(--ink-soft); color:var(--ink);
+    padding:3px 9px; border-radius:6px; font-size:clamp(.5rem,1vw,.62rem); font-weight:600; cursor:pointer;
+  }
+  .menu-add-btn.added{ background:var(--sage); border-color:var(--sage-bright); color:#eafff6; }
+  .menu-empty{ grid-column:1/-1; text-align:center; padding:16px; color:#8a6a48; font-size:.78rem; }
+
+  /* ================= Modal steps: receipt / calendar / note ================= */
+  .modal-layer{
+    position:absolute; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
+    background:rgba(11,8,5,.68);
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .modal-layer[hidden]{ display:none; }
+  .modal-layer.open{ opacity:1; pointer-events:auto; }
+
+  .receipt-card, .note-card{ position:relative; }
+  .receipt-card{ width:min(30%, 210px); }
+  .receipt-bg, .note-bg{ display:block; width:100%; height:auto; }
+  .receipt-content{
+    position:absolute; inset:9% 10% 7%; display:flex; flex-direction:column; gap:6px; align-items:stretch;
+  }
+  .receipt-title{ font-family:"Caveat", cursive; font-size:clamp(.85rem,1.9vw,1.05rem); color:var(--ink-soft); text-align:center; flex:0 0 auto; }
+  .receipt-list{ flex:1 1 auto; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding:2px 0; }
+  .receipt-item{ display:flex; align-items:center; gap:5px; font-size:clamp(.54rem,1.1vw,.68rem); color:var(--ink); line-height:1.25; }
+  .receipt-item input{ accent-color:var(--ink-soft); flex:0 0 auto; }
+  .receipt-item span{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .receipt-content .paper-btn{ width:100%; flex:0 0 auto; }
+
+  .modal-back{
+    position:absolute; left:8px; top:8px; z-index:2; width:24px; height:24px; border-radius:50%;
+    border:1px solid var(--ink-soft); background:var(--paper); color:var(--ink-soft); font-weight:700;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.9rem; line-height:1; padding:0;
+  }
+  .modal-back:hover{ background:var(--ink-soft); color:var(--paper); }
+
+  /* Calendar — pure CSS/HTML, no image asset */
+  .calendar-card2{
+    position:relative; width:min(46%, 340px);
+    background:linear-gradient(175deg, var(--paper) 0%, var(--paper-dark) 100%);
+    border:3px solid var(--ink-soft); border-radius:8px; box-shadow:0 24px 44px -12px rgba(0,0,0,.6);
+    padding:5% 6%; display:flex; flex-direction:column; gap:6px;
+  }
+  .calendar-title{ font-family:"Caveat", cursive; font-size:clamp(.9rem,2vw,1.1rem); color:var(--ink-soft); text-align:center; flex:0 0 auto; }
+  .calendar-month{ text-align:center; font-size:clamp(.6rem,1.25vw,.76rem); color:#6b4226; font-weight:600; flex:0 0 auto; }
+  .calendar-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; flex:0 0 auto; }
+  .calendar-card2 .paper-btn{ width:100%; flex:0 0 auto; margin-top:4px; }
+  .calendar-day{
+    background:rgba(255,255,255,.5); border:1px solid rgba(107,66,38,.3); border-radius:4px;
+    font-size:clamp(.56rem,1.15vw,.7rem); color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    aspect-ratio:1;
+  }
+  .calendar-day.dow{ background:none; border:none; font-weight:700; color:#6b4226; cursor:default; aspect-ratio:auto; }
+  .calendar-day.blank{ visibility:hidden; cursor:default; }
+  .calendar-day.past{ opacity:.35; cursor:default; }
+  .calendar-day.selected{ background:var(--ink-soft); color:var(--paper); font-weight:700; }
+  .calendar-day:hover:not(.blank):not(.selected):not(.past):not(.dow){ background:rgba(107,66,38,.25); }
+  .calendar-time-row{ display:flex; align-items:center; gap:8px; flex:0 0 auto; justify-content:center; padding-top:2px; }
+  .calendar-time-row[hidden]{ display:none; }
+  .calendar-time-row input[type="time"]{
+    background:rgba(255,255,255,.6); border:1px solid var(--ink-soft); border-radius:6px;
+    padding:4px 8px; color:var(--ink); font-size:clamp(.62rem,1.3vw,.78rem); font-family:inherit;
+  }
+
+  .note-card{ width:min(32%, 240px); }
+  .note-content{ position:absolute; inset:20% 16% 16%; display:flex; flex-direction:column; gap:6px; }
+  .note-title{ font-family:"Caveat", cursive; font-size:clamp(.85rem,1.9vw,1.05rem); color:var(--ink-soft); text-align:center; flex:0 0 auto; }
+  .note-content textarea{
+    flex:1; resize:none; background:rgba(255,255,255,.35); border:1px solid rgba(107,66,38,.4); border-radius:4px;
+    padding:5px 6px; font-family:"Caveat", cursive; font-size:clamp(.7rem,1.5vw,.86rem); color:var(--ink); min-height:60px;
+  }
+  .note-actions{ display:flex; gap:6px; justify-content:flex-end; flex:0 0 auto; }
+
+  .paper-btn{
+    background:rgba(255,255,255,.5); border:1px solid var(--ink-soft); color:var(--ink);
+    padding:5px 12px; border-radius:999px; font-size:clamp(.54rem,1.1vw,.7rem); font-weight:600; cursor:pointer;
+  }
+  .paper-btn.primary{ background:var(--ink-soft); color:var(--paper); }
+  .paper-btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .name-gate-card{
+    width:min(60%, 300px); background:linear-gradient(175deg, var(--paper) 0%, var(--paper-dark) 100%);
+    border:3px solid var(--ink-soft); border-radius:8px; box-shadow:0 24px 44px -12px rgba(0,0,0,.6);
+    padding:6% 7%; display:flex; flex-direction:column; align-items:stretch; gap:8px;
+  }
+  .name-gate-title{ font-family:"Fraunces", serif; font-weight:600; font-size:clamp(1rem,2.4vw,1.3rem); color:var(--ink); text-align:center; }
+  .name-gate-sub{ font-family:"Caveat", cursive; font-size:clamp(.85rem,1.9vw,1.05rem); color:#8a6a48; text-align:center; margin-bottom:2px; }
+  .name-gate-card input{
+    background:rgba(255,255,255,.6); border:1px solid var(--ink-soft); border-radius:8px;
+    padding:8px 10px; color:var(--ink); font-size:clamp(.72rem,1.5vw,.88rem); font-family:inherit; text-align:center;
+  }
+
+  .toast{
+    position:absolute; left:50%; z-index:25; top:30%;
+    transform:translate(-50%, 8px);
+    background:var(--bg-elevated); border:1px solid var(--gold); color:var(--text);
+    padding:7px 14px; border-radius:9px; font-size:clamp(.58rem,1.2vw,.78rem); opacity:0;
+    transition:opacity .25s ease, transform .25s ease; pointer-events:none; white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+</style>
+
+<div class="stage" id="stage" data-scene="day">
+  <img class="scene-bg" id="sceneDay" src="__SCENE_DAY__" alt="" />
+  <img class="scene-bg hidden" id="sceneNight" src="__SCENE_NIGHT__" alt="" />
+
+  <div class="top-bar">
+    <div class="brand">
+      <span class="brand-mark">Sullivan's</span>
+      <span class="brand-sub">Dinner Club &middot; Order Up</span>
+    </div>
+    <div class="visit-name">Tonight's guest: <b id="guestNameLabel">Friend</b></div>
+  </div>
+
+  <div class="rope-layer" id="ropeLayer"><img src="__ROPE_HANGING__" alt="" /></div>
+
+  <div class="sprite-wrap" id="spriteWrap"><canvas id="spriteCanvas" width="420" height="562"></canvas></div>
+
+  <div class="counter-front">
+    <img id="counterDay" src="__COUNTER_FRONT__" alt="" />
+  </div>
+
+  <div class="bubble" id="bubble">
+    <span class="bubble-name">Sullivan</span>
+    <span id="bubbleText"></span>
+    <div class="bubble-actions" id="bubbleActions" hidden></div>
+  </div>
+
+  <div class="loading-veil" id="loadingVeil">Setting the mood&hellip;</div>
+  <button class="dev-reset" id="devReset">&#9680; Reset to day</button>
+  <div class="state-tag" id="stateTag">Standing by &middot; <b>polishing a glass</b></div>
+
+  <div class="icon-bar">
+    <button class="icon-btn" id="iconTalk" aria-label="Talk to Sullivan"><img src="__ICON_TALK__" alt="" /><span class="icon-tip">Talk</span></button>
+    <button class="icon-btn" id="iconMenu" aria-label="Browse the menu"><img src="__ICON_MENU__" alt="" /><span class="icon-tip">Menu</span></button>
+    <button class="icon-btn" id="iconBar" aria-label="Order a drink"><img src="__ICON_BAR__" alt="" /><span class="icon-tip">Bar</span></button>
+  </div>
+
+  <div class="notebook" id="notebook">
+    <button class="notebook-close" id="notebookClose" aria-label="Close">&times;</button>
+    <div class="notebook-title" id="notebookTitle">What's on your mind?</div>
+
+    <div class="nb-picker" id="nbPicker">
+      <button class="nb-picker-btn" id="pickChat">I just want to chat</button>
+      <button class="nb-picker-btn" id="pickOrder">I want to eat something today</button>
+    </div>
+
+    <div class="nb-chat-body" id="nbChatBody" hidden>
+      <div class="nb-log" id="chatLog"></div>
+      <div class="nb-suggest" id="nbSuggest"></div>
+      <div class="nb-finish-row" id="nbFinishRow" hidden>
+        <button class="nb-finish-btn" id="nbFinishBtn">Finish order (<span id="nbFinishCount">0</span>)</button>
+      </div>
+      <div class="nb-input-row">
+        <input type="text" id="chatInput" placeholder="Type here... / 请输入..." />
+        <button class="nb-send" id="chatSend">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="menu-panel" id="menuPanel">
+    <button class="notebook-close" id="menuClose" aria-label="Close">&times;</button>
+    <div class="menu-header">
+      <div class="notebook-title" style="margin:0;">Calypso's Menu</div>
+      <button class="nb-finish-btn small" id="menuFinishBtn">Finish order (<span id="menuFinishCount">0</span>)</button>
+    </div>
+    <span class="menu-count" id="menuResultCount"></span>
+    <div class="menu-grid" id="menuGrid"></div>
+  </div>
+
+  <div class="menu-filter-bubble" id="menuFilterBubble">
+    <span class="bubble-name">Menu filters</span>
+    <div class="menu-cats" id="menuCats"></div>
+    <div class="menu-subcats" id="menuSubcats" hidden></div>
+    <div class="menu-ing-row">
+      <span class="filter-label-paper">Ingredient</span>
+      <select id="menuIngredient"><option value="">Any</option></select>
+      <button class="menu-clear" id="menuClear">Clear filters</button>
+    </div>
+  </div>
+
+  <div class="modal-layer" id="receiptLayer" hidden>
+    <div class="receipt-card">
+      <button class="modal-back" id="receiptBack" aria-label="Back">&larr;</button>
+      <img class="receipt-bg" src="__RECEIPT_BG__" alt="" />
+      <div class="receipt-content">
+        <div class="receipt-title">Tonight's Order</div>
+        <div class="receipt-list" id="receiptList"></div>
+        <button class="paper-btn primary" id="receiptConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-layer" id="calendarLayer" hidden>
+    <div class="calendar-card2">
+      <button class="modal-back" id="calendarBack" aria-label="Back">&larr;</button>
+      <div class="calendar-title">When's dinner?</div>
+      <div class="calendar-month" id="calendarMonth"></div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+      <div class="calendar-time-row" id="calendarTimeRow" hidden>
+        <span class="filter-label-paper">Time</span>
+        <input type="time" id="calendarTime" value="19:00" />
+      </div>
+      <button class="paper-btn primary" id="calendarConfirm" disabled>Confirm date &amp; time</button>
+    </div>
+  </div>
+
+  <div class="modal-layer" id="noteLayer" hidden>
+    <div class="note-card">
+      <button class="modal-back" id="noteBack" aria-label="Back">&larr;</button>
+      <img class="note-bg" src="__NOTE_BG__" alt="" />
+      <div class="note-content">
+        <div class="note-title">A Note for Zoe</div>
+        <textarea id="noteText" placeholder="Anything you want Zoe to know? (optional)"></textarea>
+        <div class="note-actions">
+          <button class="paper-btn" id="noteSkip">Skip</button>
+          <button class="paper-btn primary" id="noteSend">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-layer" id="nameGateLayer" hidden>
+    <div class="name-gate-card">
+      <div class="name-gate-title">Welcome to Calypso's</div>
+      <div class="name-gate-sub">What should Sullivan call you?</div>
+      <input type="text" id="nameGateInput" placeholder="Your name" maxlength="24" />
+      <button class="paper-btn primary" id="nameGateSubmit">Let's go</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function(){
+  // ---------------- Sprite engine ----------------
+  const ASSET_SRC = {
+    normal:"__NORMAL__",
+    cup_1:"__CUP_1__", cup_2:"__CUP_2__",
+    pen_1:"__PEN_1__", pen_2:"__PEN_2__", pen_3:"__PEN_3__", pen_4:"__PEN_4__", pen_5:"__PEN_5__",
+    rope_1:"__ROPE_1__", rope_2:"__ROPE_2__", rope_3:"__ROPE_3__", rope_4:"__ROPE_4__", rope_5:"__ROPE_5__"
+  };
+
+  // Hand-grip point for each rope_pull frame, as a fraction of that frame's OWN
+  // native canvas (before calibration). Used to keep the rope's end dynamically
+  // glued to the hand instead of a single hardcoded coordinate.
+  const ROPE_HAND_FRAC = {
+    rope_1:{x:.88,y:.36}, rope_2:{x:.86,y:.24}, rope_3:{x:.88,y:.09},
+    rope_4:{x:.86,y:.11}, rope_5:{x:.86,y:.23}
+  };
+
+  function chromaKey(img, tolerance, feather){
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const frame = ctx.getImageData(0, 0, c.width, c.height);
+    const d = frame.data;
+    // Newer art already ships with a real alpha channel (transparent corner).
+    // Only fall back to flat-background keying for the older opaque-corner assets.
+    if (d[3] < 250) return c;
+    const bg = [d[0], d[1], d[2]];
+    for (let i = 0; i < d.length; i += 4){
+      const dr = d[i] - bg[0], dg = d[i+1] - bg[1], db = d[i+2] - bg[2];
+      const dist = Math.sqrt(dr*dr + dg*dg + db*db);
+      if (dist < tolerance) d[i+3] = 0;
+      else if (dist < tolerance + feather) d[i+3] = Math.round(d[i+3] * (dist - tolerance) / feather);
+    }
+    ctx.putImageData(frame, 0, 0);
+    return c;
+  }
+
+  function loadAll(map){
+    const keys = Object.keys(map);
+    return Promise.all(keys.map(k => new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve([k, chromaKey(img, 40, 22)]);
+      img.src = map[k];
+    }))).then(pairs => Object.fromEntries(pairs));
+  }
+
+  // Every character frame renders inside the SAME fixed-size canvas (the
+  // "container"), scaled with the classic object-fit:contain math so the
+  // whole frame fits without distortion. Since every frame goes through the
+  // identical container + identical fit rule, nothing can jump in size or
+  // position between states — no per-frame calibration needed.
+  const displayCanvas = document.getElementById("spriteCanvas");
+  const dctx = displayCanvas.getContext("2d");
+  const spriteWrap = document.getElementById("spriteWrap");
+  let SPRITES = null;
+
+  function fitTransform(img){
+    const cw = displayCanvas.width, ch = displayCanvas.height;
+    const scale = Math.min(cw / img.width, ch / img.height);
+    return { scale, offsetX: (cw - img.width * scale) / 2, offsetY: (ch - img.height * scale) / 2 };
+  }
+
+  function drawFrame(key){
+    if (!SPRITES || !SPRITES[key]) return;
+    const img = SPRITES[key];
+    const t = fitTransform(img);
+    dctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+    dctx.drawImage(img, 0, 0, img.width, img.height, t.offsetX, t.offsetY, img.width * t.scale, img.height * t.scale);
+  }
+
+  const sprite = { pose:"idle", busy:false, wiping:false, talking:false, talkTimer:null, wipeTimer:null };
+  let wipeGen = 0;
+
+  function restPose(){ drawFrame(sprite.pose === "order" ? "pen_5" : "normal"); }
+
+  // Ambient idle animation only — never blocks a deliberate click. Any
+  // higher-priority action (order pose, rope pull, talking) calls this to
+  // pre-empt it instead of waiting the wipe out.
+  function cancelWipe(){
+    wipeGen++;
+    sprite.wiping = false;
+  }
+
+  function playSequence(keys, frameMs, onDone){
+    sprite.busy = true;
+    let i = 0;
+    (function step(){
+      drawFrame(keys[i]);
+      i++;
+      if (i < keys.length) setTimeout(step, frameMs);
+      else { sprite.busy = false; onDone && onDone(); }
+    })();
+  }
+
+  function playWipeCycle(onDone){
+    sprite.wiping = true;
+    const gen = ++wipeGen;
+    const seq = ["cup_1","cup_2","cup_1","cup_2","cup_1","cup_2"];
+    let i = 0;
+    (function step(){
+      if (gen !== wipeGen) return;
+      drawFrame(seq[i]);
+      i++;
+      if (i < seq.length) setTimeout(step, 2000);
+      else setTimeout(() => {
+        if (gen !== wipeGen) return;
+        sprite.wiping = false; restPose(); onDone && onDone();
+      }, 2000);
+    })();
+  }
+
+  function startTalking(){
+    cancelWipe();
+    if (sprite.talking) return;
+    sprite.talking = true;
+    // Already holding the pen + notebook (order pose) — nothing new to animate,
+    // stay put on pen_5 instead of replaying the pick-up-the-pen gesture again.
+    if (sprite.pose === "order"){ drawFrame("pen_5"); return; }
+    const seq = ["pen_1","pen_2","pen_3","pen_4","pen_5"];
+    let i = 0;
+    (function step(){
+      if (!sprite.talking) return;
+      drawFrame(seq[i]);
+      i++;
+      if (i < seq.length) sprite.talkTimer = setTimeout(step, 150);
+      // else: holds on pen_5 (pen + notebook in hand) until stopTalking() fires
+    })();
+  }
+  function stopTalking(){
+    sprite.talking = false;
+    clearTimeout(sprite.talkTimer);
+    if (!sprite.busy) restPose();
+  }
+
+  function scheduleWipe(){
+    const delay = 10000 + Math.random() * 10000;
+    sprite.wipeTimer = setTimeout(() => {
+      if (sprite.pose === "idle" && !sprite.busy && !sprite.wiping && !sprite.talking) playWipeCycle(scheduleWipe);
+      else scheduleWipe();
+    }, delay);
+  }
+
+  const bubble = document.getElementById("bubble");
+  const bubbleText = document.getElementById("bubbleText");
+  const bubbleActions = document.getElementById("bubbleActions");
+  let bubbleHideTimer = null;
+
+  function showBubble(text, opts){
+    opts = opts || {};
+    clearTimeout(bubbleHideTimer);
+    bubbleText.textContent = text;
+    bubble.classList.add("show");
+    startTalking();
+    bubbleActions.innerHTML = "";
+    bubbleActions.hidden = true;
+    if (opts.actions && opts.actions.length){
+      bubbleActions.hidden = false;
+      opts.actions.forEach(a => {
+        const btn = document.createElement("button");
+        btn.textContent = a.label;
+        if (a.primary) btn.className = "primary";
+        btn.addEventListener("click", () => { hideBubble(); a.onClick && a.onClick(); });
+        bubbleActions.appendChild(btn);
+      });
+    } else {
+      bubbleHideTimer = setTimeout(hideBubble, opts.holdMs || 3600);
+    }
+  }
+  function hideBubble(){ bubble.classList.remove("show"); stopTalking(); }
+
+  const stateTag = document.getElementById("stateTag");
+  function refreshStateTag(){
+    stateTag.innerHTML = sprite.pose === "order"
+      ? "All ears &middot; <b>pen and notebook ready</b>"
+      : "Standing by &middot; <b>polishing a glass</b>";
+  }
+
+  function enterOrderPose(){
+    if (sprite.busy) return;
+    cancelWipe();
+    if (sprite.pose === "order"){ showBubble("Still deciding? Take your time.", { holdMs:3000 }); return; }
+    playSequence(["pen_1","pen_2","pen_3","pen_4","pen_5"], 150, () => {
+      sprite.pose = "order";
+      refreshStateTag();
+      restPose();
+      showBubble("Come on in. What's on your mind tonight?", { holdMs:4000 });
+    });
+  }
+  function exitOrderPose(){
+    if (sprite.pose === "order" && !sprite.busy){ sprite.pose = "idle"; refreshStateTag(); restPose(); }
+  }
+
+  const sceneDay = document.getElementById("sceneDay");
+  const sceneNight = document.getElementById("sceneNight");
+  const stageEl = document.getElementById("stage");
+  function setSceneNight(isNight){
+    sceneDay.classList.toggle("hidden", isNight);
+    sceneNight.classList.toggle("hidden", !isNight);
+    // counter-front stays the single day image; the night look comes from
+    // the CSS filter keyed off [data-scene="night"] on the stage.
+    stageEl.dataset.scene = isNight ? "night" : "day";
+  }
+
+  const ropeLayer = document.getElementById("ropeLayer");
+
+  function ropePivotWorld(){
+    const r = ropeLayer.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top };
+  }
+  function handWorldPoint(key){
+    const frac = ROPE_HAND_FRAC[key], img = SPRITES[key];
+    const t = fitTransform(img);
+    const canvasX = (frac.x * img.width) * t.scale + t.offsetX;
+    const canvasY = (frac.y * img.height) * t.scale + t.offsetY;
+    const rect = displayCanvas.getBoundingClientRect();
+    return {
+      x: rect.left + (canvasX / displayCanvas.width) * rect.width,
+      y: rect.top + (canvasY / displayCanvas.height) * rect.height
+    };
+  }
+  function aimRopeAt(target, pivot, naturalLen){
+    const dx = target.x - pivot.x, dy = target.y - pivot.y;
+    const dist = Math.hypot(dx, dy);
+    const angleDeg = Math.atan2(dx, dy) * 180 / Math.PI;
+    ropeLayer.style.transform = "rotate(" + angleDeg.toFixed(2) + "deg) scaleY(" + (dist / naturalLen).toFixed(3) + ")";
+  }
+
+  const ROPE_FORWARD = ["rope_1","rope_2","rope_3","rope_4","rope_5"];
+  const ROPE_BACKWARD = ROPE_FORWARD.slice().reverse();
+
+  function playRopeSequence(seq, isNight, onDone){
+    if (sprite.busy) return;
+    cancelWipe();
+    const priorPose = sprite.pose;
+    sprite.busy = true;
+
+    ropeLayer.classList.add("ik-active");
+    ropeLayer.style.transition = "transform .15s linear";
+    ropeLayer.style.transform = "none";
+    void ropeLayer.offsetWidth;
+    const pivot = ropePivotWorld();
+    const naturalLen = ropeLayer.getBoundingClientRect().height;
+
+    let i = 0;
+    (function step(){
+      const key = seq[i];
+      drawFrame(key);
+      aimRopeAt(handWorldPoint(key), pivot, naturalLen);
+      // Frame 5 is the moment the rope is pulled all the way down — flip the
+      // lights right then, not after the whole gesture finishes playing out.
+      if (i === 4) setSceneNight(isNight);
+      i++;
+      if (i < seq.length){ setTimeout(step, 150); return; }
+      setTimeout(() => {
+        ropeLayer.style.transition = "transform .5s cubic-bezier(.34,1.56,.64,1)";
+        ropeLayer.style.transform = "none";
+        setTimeout(() => {
+          ropeLayer.classList.remove("ik-active");
+          ropeLayer.style.transform = "";
+          ropeLayer.style.transition = "";
+          sprite.busy = false;
+          sprite.pose = priorPose;
+          refreshStateTag();
+          restPose();
+          onDone && onDone();
+        }, 520);
+      }, 150);
+    })();
+  }
+
+  function askSwitchToBarMode(){
+    if (sprite.busy) return;
+    showBubble("Want to switch this place into bar mode?", {
+      actions: [
+        { label:"Not now", onClick: () => {} },
+        { label:"Let's do it", primary:true, onClick: () => playRopeSequence(ROPE_FORWARD, true) }
+      ]
+    });
+  }
+
+  function switchBackToDay(){
+    if (sprite.busy || stageEl.dataset.scene !== "night") return;
+    playRopeSequence(ROPE_BACKWARD, false);
+  }
+
+  document.getElementById("devReset").addEventListener("click", () => setSceneNight(false));
+
+  loadAll(ASSET_SRC).then(sprites => {
+    SPRITES = sprites;
+    restPose();
+    scheduleWipe();
+    document.getElementById("loadingVeil").classList.add("gone");
+    showModal("nameGateLayer");
+    document.getElementById("nameGateInput").focus();
+  });
+
+  // ---------------- Guest identity ----------------
+  let guestName = "Friend";
+  function submitGuestName(){
+    const val = document.getElementById("nameGateInput").value.trim();
+    guestName = val || "Friend";
+    document.getElementById("guestNameLabel").textContent = guestName;
+    console.log("[Sullivan's] guest checked in:", guestName);
+    hideModal("nameGateLayer");
+  }
+  document.getElementById("nameGateSubmit").addEventListener("click", submitGuestName);
+  document.getElementById("nameGateInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitGuestName(); });
+
+  // ================= Icon bar + notebook overlay =================
+  const MENU_DATA = __MENU_DATA_JSON__;
+  const dishes = MENU_DATA.dishes;
+  const ingredientIndex = MENU_DATA.ingredientIndex;
+
+  const CATEGORIES = [
+    { key:"", label:"All" },
+    { key:"meat", label:"Meat" },
+    { key:"vegetarian", label:"Vegetarian" },
+    { key:"seafood", label:"Seafood" },
+    { key:"staple", label:"Staple" },
+    { key:"dessert", label:"Dessert" },
+    { key:"sauce", label:"Sauce" }
+  ];
+  const MEAT_SUBCATS = [...new Set(dishes.flatMap(d => d.subcategory || []))].sort();
+
+  const $ = (sel) => document.querySelector(sel);
+  const notebook = $("#notebook");
+  const menuPanel = $("#menuPanel");
+  const iconTalk = $("#iconTalk");
+  const iconMenu = $("#iconMenu");
+  const iconBar = $("#iconBar");
+  const toast = $("#toast");
+
+  function showToast(text){
+    toast.textContent = text;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2600);
+  }
+
+  // ---------------- Shared pending-order state ----------------
+  const pending = new Map(); // id -> dish, shared between chat suggestions and the menu grid
+  function isPending(id){ return pending.has(id); }
+  function togglePending(dish){
+    if (pending.has(dish.id)) pending.delete(dish.id); else pending.set(dish.id, dish);
+    refreshPendingUI();
+  }
+  function refreshPendingUI(){
+    const n = pending.size;
+    $("#nbFinishCount").textContent = n;
+    $("#menuFinishCount").textContent = n;
+    $("#nbFinishBtn").disabled = n === 0;
+    $("#menuFinishBtn").disabled = n === 0;
+    document.querySelectorAll(".menu-add-btn").forEach(btn => {
+      const id = Number(btn.dataset.id);
+      btn.classList.toggle("added", isPending(id));
+      btn.textContent = isPending(id) ? "Added ✓" : "+ Add";
+    });
+  }
+
+  const nbPicker = $("#nbPicker");
+  const nbChatBody = $("#nbChatBody");
+  const nbSuggest = $("#nbSuggest");
+  const nbFinishRow = $("#nbFinishRow");
+  const notebookTitle = $("#notebookTitle");
+  let chatMode = null; // "chat" | "order"
+
+  function openNotebook(){
+    closeMenu();
+    notebook.classList.add("open");
+    iconTalk.classList.add("active");
+    enterOrderPose();
+    chatMode = null;
+    chatLog.innerHTML = "";
+    nbSuggest.innerHTML = "";
+    nbFinishRow.hidden = true;
+    notebookTitle.textContent = "What's on your mind?";
+    nbPicker.hidden = false;
+    nbChatBody.hidden = true;
+  }
+  function closeNotebook(){
+    notebook.classList.remove("open");
+    iconTalk.classList.remove("active");
+    exitOrderPose();
+  }
+
+  // ---------------- Menu panel ----------------
+  const menuState = { category:"", subcats:new Set(), ingredient:"" };
+
+  const menuFilterBubble = $("#menuFilterBubble");
+  function openMenu(){
+    closeNotebook();
+    menuPanel.classList.add("open");
+    menuFilterBubble.classList.add("open");
+    iconMenu.classList.add("active");
+    renderMenuCats();
+    renderMenuIngredientOptions();
+    renderMenuGrid();
+  }
+  function closeMenu(){
+    menuPanel.classList.remove("open");
+    menuFilterBubble.classList.remove("open");
+    iconMenu.classList.remove("active");
+  }
+
+  function renderMenuCats(){
+    const wrap = $("#menuCats");
+    wrap.innerHTML = "";
+    CATEGORIES.forEach(c => {
+      const btn = document.createElement("button");
+      btn.className = "menu-cat-chip" + (menuState.category === c.key ? " active" : "");
+      btn.textContent = c.label;
+      btn.addEventListener("click", () => {
+        menuState.category = c.key;
+        menuState.subcats.clear();
+        renderMenuCats();
+        renderMenuSubcats();
+        renderMenuGrid();
+      });
+      wrap.appendChild(btn);
+    });
+    renderMenuSubcats();
+  }
+  function renderMenuSubcats(){
+    const wrap = $("#menuSubcats");
+    wrap.innerHTML = "";
+    if (menuState.category !== "meat"){ wrap.hidden = true; return; }
+    wrap.hidden = false;
+    MEAT_SUBCATS.forEach(s => {
+      const btn = document.createElement("button");
+      btn.className = "menu-subcat-chip" + (menuState.subcats.has(s) ? " active" : "");
+      btn.textContent = s[0].toUpperCase() + s.slice(1);
+      btn.addEventListener("click", () => {
+        if (menuState.subcats.has(s)) menuState.subcats.delete(s); else menuState.subcats.add(s);
+        renderMenuSubcats();
+        renderMenuGrid();
+      });
+      wrap.appendChild(btn);
+    });
+  }
+  function renderMenuIngredientOptions(){
+    const sel = $("#menuIngredient");
+    if (sel.dataset.filled) return;
+    sel.dataset.filled = "1";
+    Object.keys(ingredientIndex).sort().forEach(en => {
+      const opt = document.createElement("option");
+      opt.value = en;
+      opt.textContent = en + " · " + ingredientIndex[en];
+      sel.appendChild(opt);
+    });
+  }
+  $("#menuIngredient").addEventListener("change", (e) => { menuState.ingredient = e.target.value; renderMenuGrid(); });
+  $("#menuClear").addEventListener("click", () => {
+    menuState.category = ""; menuState.subcats.clear(); menuState.ingredient = "";
+    $("#menuIngredient").value = "";
+    renderMenuCats();
+    renderMenuGrid();
+  });
+
+  function renderMenuGrid(){
+    const grid = $("#menuGrid");
+    grid.innerHTML = "";
+    const filtered = dishes.filter(d => {
+      if (menuState.category && d.category !== menuState.category) return false;
+      if (menuState.category === "meat" && menuState.subcats.size && !(d.subcategory || []).some(s => menuState.subcats.has(s))) return false;
+      if (menuState.ingredient && !d.ingredients.some(i => i.en.toLowerCase() === menuState.ingredient.toLowerCase())) return false;
+      return true;
+    });
+    $("#menuResultCount").textContent = filtered.length + " dishes";
+    if (!filtered.length){ grid.innerHTML = '<div class="menu-empty">Nothing matches — try different filters.</div>'; return; }
+    filtered.forEach(d => {
+      const card = document.createElement("div");
+      card.className = "menu-card";
+      const tags = [...d.taste, ...d.mood].slice(0, 3);
+      card.innerHTML =
+        '<div class="menu-card-name-cn">' + d.cn + '</div>' +
+        '<div class="menu-card-name-en">' + d.en + '</div>' +
+        '<div class="menu-card-tags">' + tags.map(t => '<span class="menu-tag">' + t + '</span>').join("") + '</div>' +
+        '<div class="menu-card-note">' + (d.note || "") + '</div>';
+      const foot = document.createElement("div");
+      foot.style.display = "flex"; foot.style.justifyContent = "flex-end";
+      const btn = document.createElement("button");
+      btn.className = "menu-add-btn"; btn.dataset.id = d.id;
+      btn.textContent = isPending(d.id) ? "Added ✓" : "+ Add";
+      if (isPending(d.id)) btn.classList.add("added");
+      btn.addEventListener("click", () => togglePending(d));
+      foot.appendChild(btn);
+      card.appendChild(foot);
+      grid.appendChild(card);
+    });
+    refreshPendingUI();
+  }
+
+  const ORDER_CHIPS = [
+    { label:"Something spicy", say:"I want something spicy today" },
+    { label:"Feeling drained", say:"Feeling drained, need comfort food" },
+    { label:"Celebrating tonight", say:"We're celebrating tonight" },
+    { label:"Keep it light", say:"Keep it light tonight" }
+  ];
+  const CHAT_CHIPS = [
+    { label:"Ask about her travels", say:"Where all have you traveled?" },
+    { label:"Ask about the sax", say:"Do you still play the saxophone?" },
+    { label:"Ask what she's reading", say:"Read any good books lately?" },
+    { label:"Ask about the scar", say:"What's the story behind that scar?" }
+  ];
+  function renderSuggestChips(mode){
+    nbSuggest.innerHTML = "";
+    (mode === "order" ? ORDER_CHIPS : CHAT_CHIPS).forEach(c => {
+      const btn = document.createElement("button");
+      btn.className = "nb-chip";
+      btn.textContent = c.label;
+      btn.addEventListener("click", () => handleUserText(c.say));
+      nbSuggest.appendChild(btn);
+    });
+  }
+
+  function chooseMode(mode){
+    chatMode = mode;
+    nbPicker.hidden = true;
+    nbChatBody.hidden = false;
+    nbFinishRow.hidden = mode !== "order";
+    notebookTitle.textContent = mode === "order" ? "Tell Sullivan what you're after" : "Just chatting with Sullivan";
+    renderSuggestChips(mode);
+    refreshPendingUI();
+    const opener = mode === "order"
+      ? "So, what are you in the mood for tonight?"
+      : "No agenda tonight? Suits me fine. What's on your mind?";
+    addMessage("sullivan", opener);
+    chatHistory.push({ role: "sullivan", text: opener });
+  }
+  $("#pickChat").addEventListener("click", () => chooseMode("chat"));
+  $("#pickOrder").addEventListener("click", () => chooseMode("order"));
+  iconTalk.addEventListener("click", () => {
+    if (notebook.classList.contains("open")) closeNotebook(); else openNotebook();
+  });
+  $("#notebookClose").addEventListener("click", closeNotebook);
+  $("#menuClose").addEventListener("click", closeMenu);
+
+  iconMenu.addEventListener("click", () => {
+    if (stageEl.dataset.scene === "night"){ closeNotebook(); switchBackToDay(); return; }
+    if (menuPanel.classList.contains("open")) closeMenu(); else openMenu();
+  });
+  iconBar.addEventListener("click", () => {
+    closeNotebook();
+    closeMenu();
+    if (stageEl.dataset.scene === "night"){
+      showToast("The drink list is still being poured — check back soon.");
+      return;
+    }
+    askSwitchToBarMode();
+  });
+
+  const chatLog = $("#chatLog");
+  const chatInput = $("#chatInput");
+
+  function addMessage(who, text, dishList){
+    const el = document.createElement("div");
+    el.className = "nb-msg " + who;
+    const label = who === "user" ? "You" : "Sullivan";
+    el.innerHTML = '<span class="nb-who">' + label + '</span>' + text;
+    if (dishList && dishList.length){
+      const wrap = document.createElement("div");
+      wrap.className = "msg-dishes";
+      wrap.style.marginTop = "4px";
+      dishList.forEach(d => {
+        const chip = document.createElement("span");
+        chip.className = "mini-dish";
+        chip.style.cssText = "display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,.06);border:1px solid var(--ink-soft);border-radius:6px;padding:2px 6px;margin:2px 3px 0 0;font-style:italic;";
+        const label = document.createElement("span");
+        label.textContent = d.cn + " · " + d.en;
+        const btn = document.createElement("button");
+        btn.textContent = isPending(d.id) ? "Added" : "+ Add";
+        btn.style.cssText = "background:none;border:none;color:var(--ink-soft);font-weight:700;cursor:pointer;font-style:normal;";
+        btn.addEventListener("click", () => { togglePending(d); btn.textContent = isPending(d.id) ? "Added" : "+ Add"; });
+        chip.appendChild(label); chip.appendChild(btn);
+        wrap.appendChild(chip);
+      });
+      el.appendChild(wrap);
+    }
+    chatLog.appendChild(el);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    if (who === "sullivan") showBubble(text, { holdMs:3600 });
+  }
+
+  // ---------------- Real conversation, backed by the Flask/Gemini server ----------------
+  // chatHistory is sent with every turn so Gemini has context; it lives only for this
+  // page session (matches "remembered for the whole session" — nothing persisted to disk).
+  let chatHistory = []; // { role: "user" | "sullivan", text }
+
+  function addTyping(){
+    const el = document.createElement("div");
+    el.className = "nb-msg sullivan typing";
+    el.innerHTML = '<span class="nb-who">Sullivan</span><span class="typing-dots">•••</span>';
+    chatLog.appendChild(el);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return el;
+  }
+
+  async function askSullivan(mode, text){
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, history: chatHistory, mode, guestName })
+      });
+      if (!res.ok) throw new Error("server responded " + res.status);
+      const data = await res.json();
+      return { reply: data.reply || "...", dish_ids: data.dish_ids || [] };
+    } catch (err){
+      console.error("[Sullivan's] /api/chat failed:", err);
+      return { reply: "(Bar's noisy — didn't catch that. Try again in a sec?)", dish_ids: [] };
+    }
+  }
+
+  async function handleUserText(text){
+    text = (text || "").trim();
+    if (!text) return;
+    addMessage("user", text);
+    chatHistory.push({ role: "user", text });
+    chatInput.value = "";
+    chatInput.disabled = true;
+    const typingEl = addTyping();
+    const { reply, dish_ids } = await askSullivan(chatMode, text);
+    typingEl.remove();
+    chatInput.disabled = false;
+    chatInput.focus();
+    chatHistory.push({ role: "sullivan", text: reply });
+    const dishList = (chatMode === "order" && dish_ids && dish_ids.length)
+      ? dish_ids.map(id => dishes.find(d => d.id === id)).filter(Boolean).slice(0, 3)
+      : null;
+    addMessage("sullivan", reply, dishList);
+  }
+  $("#chatSend").addEventListener("click", () => handleUserText(chatInput.value));
+  chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") handleUserText(chatInput.value); });
+
+  // ================= Finish order -> receipt -> calendar -> note =================
+  function showModal(id){
+    const el = $("#" + id);
+    el.hidden = false;
+    void el.offsetWidth;
+    el.classList.add("open");
+  }
+  function hideModal(id){
+    const el = $("#" + id);
+    el.classList.remove("open");
+    setTimeout(() => { el.hidden = true; }, 220);
+  }
+
+  let receiptSelection = [];
+  let selectedDate = null;
+  let finishSource = null; // "menu" | "chat" — where Finish order was pressed, for the receipt's back button
+
+  function startFinishOrder(source){
+    if (pending.size === 0) return;
+    finishSource = source;
+    closeNotebook();
+    closeMenu();
+    renderReceipt();
+    showModal("receiptLayer");
+  }
+  $("#nbFinishBtn").addEventListener("click", () => startFinishOrder("chat"));
+  $("#menuFinishBtn").addEventListener("click", () => startFinishOrder("menu"));
+
+  function renderReceipt(){
+    const list = $("#receiptList");
+    list.innerHTML = "";
+    [...pending.values()].forEach(d => {
+      const row = document.createElement("label");
+      row.className = "receipt-item";
+      const box = document.createElement("input");
+      box.type = "checkbox"; box.checked = true; box.dataset.id = d.id;
+      const span = document.createElement("span");
+      span.textContent = d.en;
+      span.title = d.cn + " · " + d.en;
+      row.appendChild(box); row.appendChild(span);
+      list.appendChild(row);
+    });
+  }
+
+  $("#receiptBack").addEventListener("click", () => {
+    hideModal("receiptLayer");
+    if (finishSource === "menu") openMenu();
+    else { notebook.classList.add("open"); iconTalk.classList.add("active"); }
+  });
+
+  $("#receiptConfirm").addEventListener("click", () => {
+    const checkedIds = [...document.querySelectorAll("#receiptList input:checked")].map(i => Number(i.dataset.id));
+    receiptSelection = [...pending.values()].filter(d => checkedIds.includes(d.id));
+    hideModal("receiptLayer");
+    selectedDate = null;
+    $("#calendarConfirm").disabled = true;
+    $("#calendarTimeRow").hidden = true;
+    $("#calendarTime").value = "19:00";
+    renderCalendar();
+    setTimeout(() => showModal("calendarLayer"), 230);
+  });
+
+  $("#calendarBack").addEventListener("click", () => {
+    hideModal("calendarLayer");
+    showModal("receiptLayer"); // re-show as-is, checkbox choices are preserved
+  });
+
+  function renderCalendar(){
+    const grid = $("#calendarGrid");
+    grid.innerHTML = "";
+    const now = new Date();
+    const year = now.getFullYear(), month = now.getMonth();
+    const first = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    $("#calendarMonth").textContent = first.toLocaleDateString("en-US", { month:"long", year:"numeric" });
+    ["S","M","T","W","T","F","S"].forEach(d => {
+      const el = document.createElement("div");
+      el.className = "calendar-day dow";
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+    for (let i = 0; i < first.getDay(); i++){
+      const el = document.createElement("div");
+      el.className = "calendar-day blank";
+      grid.appendChild(el);
+    }
+    const today = new Date(year, month, now.getDate());
+    for (let d = 1; d <= daysInMonth; d++){
+      const el = document.createElement("div");
+      el.className = "calendar-day";
+      el.textContent = d;
+      const thisDate = new Date(year, month, d);
+      if (thisDate < today){
+        el.classList.add("past");
+      } else {
+        el.addEventListener("click", () => {
+          selectedDate = thisDate;
+          grid.querySelectorAll(".calendar-day.selected").forEach(x => x.classList.remove("selected"));
+          el.classList.add("selected");
+          $("#calendarTimeRow").hidden = false;
+          $("#calendarConfirm").disabled = false;
+        });
+      }
+      grid.appendChild(el);
+    }
+  }
+
+  $("#calendarConfirm").addEventListener("click", () => {
+    hideModal("calendarLayer");
+    $("#noteText").value = "";
+    setTimeout(() => showModal("noteLayer"), 230);
+  });
+
+  $("#noteBack").addEventListener("click", () => {
+    hideModal("noteLayer");
+    showModal("calendarLayer"); // re-show as-is, date/time choices are preserved
+  });
+
+  function finishOrderFlow(noteMsg){
+    hideModal("noteLayer");
+    pending.clear();
+    refreshPendingUI();
+    const dateStr = selectedDate ? selectedDate.toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" }) : "soon";
+    const timeStr = $("#calendarTime").value || "19:00";
+    console.log("[Sullivan's] order submitted", { guest:guestName, dishes:receiptSelection, date:dateStr, time:timeStr, note:noteMsg });
+    showToast(guestName + " → Zoe ✦ " + receiptSelection.length + " dishes for " + dateStr + " at " + timeStr);
+  }
+  $("#noteSkip").addEventListener("click", () => finishOrderFlow(""));
+  $("#noteSend").addEventListener("click", () => finishOrderFlow($("#noteText").value.trim()));
+})();
+</script>

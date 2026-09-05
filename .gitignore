@@ -1,0 +1,15 @@
+# Secrets — never commit real API keys
+.env
+**/.env
+
+# Python (local Flask dev server)
+server/venv/
+__pycache__/
+*.pyc
+
+# Node (Vercel functions)
+node_modules/
+.vercel/
+
+# macOS
+.DS_Store
